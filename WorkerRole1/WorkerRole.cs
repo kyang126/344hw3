@@ -29,31 +29,32 @@ namespace WorkerRole1
 
             try
             {
+               while (true){
+                   getReference g = new getReference();
+                   CloudQueue queue = g.commandQueue();
+                   queue.CreateIfNotExists();
+                   CloudQueueMessage retrievedMessage = queue.GetMessage();
 
-                while (true)
-                {
-                    getReference g = new getReference();
-                    CloudQueue queue = g.commandQueue();
-                    queue.CreateIfNotExists();
-                    CloudQueueMessage retrievedMessage = queue.GetMessage();
+                   if (retrievedMessage != null && retrievedMessage.AsString.Equals("start"))
+                   {
+                       queue.DeleteMessage(retrievedMessage);
+                       crawlRobots();
+                   }
 
-                    if (retrievedMessage != null && retrievedMessage.AsString.Equals("start"))
-                    {
-                        queue.DeleteMessage(retrievedMessage);
-                        crawlRobots();
-                    }
+                   else if (retrievedMessage != null && retrievedMessage.AsString.Equals("stop"))
+                   {
+                       queue.DeleteMessage(retrievedMessage);
+                       break;
+                   } 
 
-                    else if (retrievedMessage != null && retrievedMessage.AsString.Equals("stop"))
-                    {
-                        break;
-                    }
+               }
                     
 
-                    Thread.Sleep(50);
-                }
+               Thread.Sleep(50);
                 
-           
-              this.RunAsync(this.cancellationTokenSource.Token).Wait();
+
+
+                //this.RunAsync(this.cancellationTokenSource.Token).Wait();
             }
             finally
             {
@@ -62,7 +63,7 @@ namespace WorkerRole1
         }
 
 
-         public void crawlRobots()
+        public void crawlRobots()
         {
             List<String> noRobots = new List<String>();
             List<String> allXml = new List<String>();
@@ -122,114 +123,110 @@ namespace WorkerRole1
                 }
                 robot = "http://www.cnn.com/robots.txt";
             }
-                
-             crawlerUrls(allXml, noRobots);   
+
+            crawlerUrls(allXml, noRobots);
         }
 
 
-         private List<String> getAllXml(List<String> o)
-         {
-             List<String> oldList = o;
-             int count = 0;
-             while (count < oldList.Count)
-             {
-                 WebClient web = new WebClient();
-                 String html = web.DownloadString(oldList.ElementAt(count));
-                 MatchCollection m1 = Regex.Matches(html, @"<loc>\s*(.+?)\s*</loc>", RegexOptions.Singleline);
-                 String index = oldList.ElementAt(count);
-                 foreach (Match m in m1)
-                 {
-                     String url = m.Groups[1].Value;
-                     if (url.Contains("xml") && ((url.Contains("2015") || !url.Contains("-20"))))
-                     {
+        private List<String> getAllXml(List<String> o)
+        {
+            List<String> oldList = o;
+            int count = 0;
+            while (count < oldList.Count)
+            {
+                WebClient web = new WebClient();
+                String html = web.DownloadString(oldList.ElementAt(count));
+                MatchCollection m1 = Regex.Matches(html, @"<loc>\s*(.+?)\s*</loc>", RegexOptions.Singleline);
+                String index = oldList.ElementAt(count);
+                foreach (Match m in m1)
+                {
+                    String url = m.Groups[1].Value;
+                    if (url.Contains("xml") && ((url.Contains("2015") || !url.Contains("-20"))))
+                    {
                         oldList.Add(url);
 
                         oldList.Remove(index);
-                     }
-                 }
-                 count++;
-             }
-             return oldList;
-         }
+                    }
+                }
+                count++;
+            }
+            return oldList;
+        }
 
         public void crawlerUrls(List<String> xmlList, List<String> noRobots)
         {
-            List<String> urlList = new List<String>();
+            HashSet<String> urlList = new HashSet<string>();
+            getReference g = new getReference();
+            CloudQueue queue = g.getQueue();
+            CloudQueue cmd = g.commandQueue();
             for (int i = 0; i < xmlList.Count; i++)
             {
                 String xml = xmlList.ElementAt(i);
                 WebClient web = new WebClient();
                 String html = web.DownloadString(xml);
                 MatchCollection m1 = Regex.Matches(html, @"<loc>\s*(.+?)\s*</loc>", RegexOptions.Singleline);
-                getReference g = new getReference();
-                CloudQueue queue = g.getQueue();
-                CloudQueue cmd = g.commandQueue();
 
-               
+                CloudQueueMessage cmdMessage = cmd.GetMessage();
+
+                if (cmdMessage != null && cmdMessage.AsString.Equals("stop"))
+                {
+                    cmd.DeleteMessage(cmdMessage);
+                    return;
+                }
 
                 foreach (Match m in m1)
                 {
-
-                    CloudQueueMessage cmdMessage = cmd.GetMessage();
-
-                    if (cmdMessage != null && cmdMessage.AsString.Equals("stop"))
-                    {
-                        cmd.DeleteMessage(cmdMessage);
-                        return;
-                    }
-
                     String url = m.Groups[1].Value;
                     urlList.Add(url);
                     CloudQueueMessage message = new CloudQueueMessage(url);
                     queue.AddMessage(message);
                 }
-              urlList = getAllUrls(urlList, noRobots);
+                urlList = getAllUrls(urlList, noRobots);
             }
         }
 
-        private List<String> getAllUrls(List<String> o, List<String> noCNN)
+        private HashSet<String> getAllUrls(HashSet<String> o, List<String> disallowed)
         {
             getReference g = new getReference();
             CloudQueue queue = g.getQueue();
             CloudTable table = g.getTable();
-            List<String> oldList = o;
+            CloudQueue cmd = g.commandQueue();
+            HashSet<String> oldList = o;
 
             int count = 0;
             queue.FetchAttributes();
-            while(count < queue.ApproximateMessageCount.Value || count < 100)
+            while (0 < queue.ApproximateMessageCount.Value)
             {
                 WebClient web = new WebClient();
                 String html = web.DownloadString(oldList.ElementAt(count));
-                MatchCollection m1 = Regex.Matches(html, @"<title>\s*(.+?)\s*</title>", RegexOptions.Singleline);
-                MatchCollection m2 = Regex.Matches(html, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
-                MatchCollection m3 = Regex.Matches(html, @"<meta content=""\s*(.+?)\s*"" itemprop=""dateCreated", RegexOptions.Singleline);
+                MatchCollection titles = Regex.Matches(html, @"<title>\s*(.+?)\s*</title>", RegexOptions.Singleline);
+                MatchCollection links = Regex.Matches(html, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
+                MatchCollection dates = Regex.Matches(html, @"<meta content=""\s*(.+?)\s*"" itemprop=""dateCreated", RegexOptions.Singleline);
                 String root = "";
-
 
                 if (oldList.ElementAt(count).Contains("bleacherreport"))
                 {
-                    root = "http://bleacherreport.com";
+                    root = "bleacherreport.com";
                 }
                 else
                 {
-                    root = "http://cnn.com";
+                    root = "cnn.com";
                 }
 
-        
                 String title = "";
-                if (m1 != null)
+                if (titles != null)
                 {
-                    Match mt = m1[0];
+                    Match mt = titles[0];
                     title = mt.Groups[1].Value;
                 }
 
-               
                 String date = "";
-                if (m3 != null && m3.Count > 0)
+                if (dates != null && dates.Count > 0)
                 {
-                    Match md = m3[0];
+                    Match md = dates[0];
                     date = md.Groups[1].Value;
                 }
+
                 CloudQueueMessage retrievedMessage = queue.GetMessage();
                 if (retrievedMessage != null)
                 {
@@ -238,37 +235,26 @@ namespace WorkerRole1
                     table.Execute(insertOrReplaceOperation);
                     queue.DeleteMessage(retrievedMessage);
                     count++;
-                }                
-                
-                foreach (Match m in m2)
+                }
+
+                foreach (Match m in links)
                 {
-                    CloudQueue cmd = g.commandQueue();
-
-                    CloudQueueMessage cmdMessage = cmd.GetMessage();
-                    if (cmdMessage != null && cmdMessage.AsString.Equals("stop"))
-                    {
-                        cmd.DeleteMessage(cmdMessage);
-                        return new List<String>();
-                    }
-
                     String url = m.Groups[1].Value;
                     if (url.StartsWith("/"))
                     {
                         url = root + url;
                     }
-                    
-                    if (!oldList.Contains(url) && !noCNN.Contains(url) && (url.Contains(root)))
+                    if (!oldList.Contains(url) && !disallowed.Contains(url) && (url.Contains(root + "/")))
                     {
                         oldList.Add(url);
                         CloudQueueMessage message = new CloudQueueMessage(url);
                         queue.AddMessage(message);
                     }
-                }                
+                }
             }
-
             return oldList;
         }
-    
+
         public override bool OnStart()
         {
             // Set the maximum number of concurrent connections

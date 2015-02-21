@@ -91,6 +91,7 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="dashboard.asmx" />
     <Content Include="index.asmx" />
     <Content Include="index.html" />
     <Content Include="packages.config" />
@@ -107,7 +108,10 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="crawledTable.cs" />
+    <Compile Include="dashboard.asmx.cs">
+      <DependentUpon>dashboard.asmx</DependentUpon>
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="index.asmx.cs">
       <DependentUpon>index.asmx</DependentUpon>
       <SubType>Component</SubType>

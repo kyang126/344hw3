@@ -23,7 +23,7 @@ namespace WebRole1
     [WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
     [System.ComponentModel.ToolboxItem(false)]
     // To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
-    // [System.Web.Script.Services.ScriptService]
+    [System.Web.Script.Services.ScriptService]
     public class index : System.Web.Services.WebService
     {
         private List<String> htmlFiles = new List<String>();
@@ -47,18 +47,42 @@ namespace WebRole1
             queue.CreateIfNotExists();
             CloudQueueMessage message = new CloudQueueMessage("stop");
             queue.AddMessage(message);
+
+            CloudQueue storage = g.getQueue();
+            storage.Clear();
+            CloudTable table = g.getTable();
+            table.Delete();
+
         }
 
         [WebMethod]
-        public int getQueueCount()
+        public String getQueueCount()
         {
             getReference g = new getReference();
             CloudQueue queue = g.getQueue();
             queue.CreateIfNotExists();
             queue.FetchAttributes();
             int approximateMessagesCount = queue.ApproximateMessageCount.Value;
-            return approximateMessagesCount;
+            return "" + approximateMessagesCount;
+        }
 
+        [WebMethod]
+        public String getcmdCount()
+        {
+            getReference g = new getReference();
+            CloudQueue queue = g.commandQueue();
+            queue.CreateIfNotExists();
+            queue.FetchAttributes();
+            int approximateMessagesCount = queue.ApproximateMessageCount.Value;
+            return "" + approximateMessagesCount;
+        }
+
+        [WebMethod]
+        public void clearCmd()
+        {
+            getReference g = new getReference();
+            CloudQueue queue = g.commandQueue();
+            queue.Clear();
         }
 
         [WebMethod]
@@ -79,82 +103,71 @@ namespace WebRole1
         }
 
         [WebMethod]
-        public List<String> crawlRobots()
+        public void crawlRobots()
         {
-            
             List<String> noRobots = new List<String>();
             List<String> allXml = new List<String>();
             var wc = new WebClient();
-            String robot = "http://www.cnn.com/robots.txt"; 
+            String robot = "http://bleacherreport.com/robots.txt";
             int count = 0;
             List<String> yesRobots = new List<String>();
-
-            using (var sourceStream = wc.OpenRead(robot))
+            for (int i = 0; i < 2; i++)
             {
-                using (var reader = new StreamReader(sourceStream))
+                using (var sourceStream = wc.OpenRead(robot))
                 {
-                    while (reader.EndOfStream == false)
+                    using (var reader = new StreamReader(sourceStream))
                     {
-                        string line = reader.ReadLine();
-                        if (!line.Contains("User-Agent"))
+                        while (reader.EndOfStream == false)
                         {
 
-                            if (line.Contains("Sitemap:"))
+                            string line = reader.ReadLine();
+                            if (!line.Contains("User-Agent"))
                             {
-                                String newUrl = line.Replace("Sitemap:", "").Trim();
 
-                                if (robot.Contains("bleacher") && newUrl.Contains("nba"))
+                                if (line.Contains("Sitemap:"))
                                 {
-                                    yesRobots.Add(newUrl);
-                                }
-                                else if (robot.Contains("cnn"))
-                                {
-                                    yesRobots.Add(newUrl);
-                                }
-                            }
-                            if (line.Contains("Disallow:"))
-                            {
-                                String newUrl = line.Replace("Disallow:", "").Trim();
+                                    String newUrl = line.Replace("Sitemap:", "").Trim();
 
-                                if (robot.Contains("bleacher"))
-                                {
-                                    newUrl = "http://bleacherreport.com" + newUrl;
+                                    if (robot.Contains("bleacher") && newUrl.Contains("nba"))
+                                    {
+                                        yesRobots.Add(newUrl);
+                                    }
+                                    else if (robot.Contains("cnn"))
+                                    {
+                                        yesRobots.Add(newUrl);
+                                    }
                                 }
-                                else
+                                if (line.Contains("Disallow:"))
                                 {
-                                    newUrl = "http://cnn.com" + newUrl;
+                                    String newUrl = line.Replace("Disallow:", "").Trim();
+
+                                    if (robot.Contains("bleacher"))
+                                    {
+                                        newUrl = "http://bleacherreport.com" + newUrl;
+                                    }
+                                    else
+                                    {
+                                        newUrl = "http://cnn.com" + newUrl;
+                                    }
+
+                                    noRobots.Add(newUrl);
                                 }
-
-
-                                noRobots.Add(newUrl);
                             }
                         }
                     }
                 }
-                
-                count++;             
+                count++;
                 if (robot.Contains("cnn"))
                 {
                     allXml = getAllXml(yesRobots);
                 }
-             
-            }
-                
-
-            if (robot.Contains("bleacher")){
-           // return crawlerUrls("http://bleacherreport.com/sitemap/nba.xml", noRobots);
-            }
-            else
-            {
-             return crawlerUrls(allXml, noRobots);
+                robot = "http://www.cnn.com/robots.txt";
             }
 
-           return allXml;
-
+            crawlerUrls(allXml, noRobots);
         }
 
 
-        [WebMethod]
         private List<String> getAllXml(List<String> o)
         {
             List<String> oldList = o;
@@ -170,10 +183,9 @@ namespace WebRole1
                     String url = m.Groups[1].Value;
                     if (url.Contains("xml") && ((url.Contains("2015") || !url.Contains("-20"))))
                     {
-                        
-                            oldList.Add(url);
-                        
-                       oldList.Remove(index);
+                        oldList.Add(url);
+
+                        oldList.Remove(index);
                     }
                 }
                 count++;
@@ -181,69 +193,111 @@ namespace WebRole1
             return oldList;
         }
 
-        public List<String> crawlerUrls(List<String> xmlList, List<String> noRobots)
+        [WebMethod]
+        public void crawlerUrls(List<String> xmlList, List<String> noRobots)
         {
-            List<String> urlList = new List<String>();
+            HashSet<String> urlList = new HashSet<string>();
+            getReference g = new getReference();
+            CloudQueue queue = g.getQueue();
+            CloudQueue cmd = g.commandQueue();
             for (int i = 0; i < xmlList.Count; i++)
             {
-                List<String> oldList = new List<String>();
                 String xml = xmlList.ElementAt(i);
                 WebClient web = new WebClient();
                 String html = web.DownloadString(xml);
                 MatchCollection m1 = Regex.Matches(html, @"<loc>\s*(.+?)\s*</loc>", RegexOptions.Singleline);
-               // urlList.Add(m1.ToString());
-                //String url = m1[1].Value;
-                Match m3 = m1[0];
-                String url = m3.Groups[1].Value;
-                urlList.Add(url);
-               /* foreach (Match m in m1)
+
+                CloudQueueMessage cmdMessage = cmd.GetMessage();
+
+                if (cmdMessage != null && cmdMessage.AsString.Equals("stop"))
+                {
+                    cmd.DeleteMessage(cmdMessage);
+                    return;
+                }
+
+                foreach (Match m in m1)
                 {
                     String url = m.Groups[1].Value;
                     urlList.Add(url);
-                    oldList.Add(url);
-                } */
-               // urlList = getAllUrls(oldList, noRobots, urlList);
+                    CloudQueueMessage message = new CloudQueueMessage(url);
+                    queue.AddMessage(message);
+                }
+                urlList = getAllUrls(urlList, noRobots);
             }
-            urlList.Add(""+urlList.Count);
-            return urlList;
         }
 
-        private List<String> getAllUrls(List<String> o, List<String> noCNN, List<String> urlList)
+        private HashSet<String> getAllUrls(HashSet<String> o, List<String> disallowed)
         {
-            List<String> oldList = o;
+            getReference g = new getReference();
+            CloudQueue queue = g.getQueue();
+            CloudTable table = g.getTable();
+            CloudQueue cmd = g.commandQueue();
+            HashSet<String> oldList = o;
 
-          
-               for (int i = 0; i < oldList.Count; i++)
+            int count = 0;
+            queue.FetchAttributes();
+            while (0 < queue.ApproximateMessageCount.Value || count < 100)
+            {
+                WebClient web = new WebClient();
+                String html = web.DownloadString(oldList.ElementAt(count));
+                MatchCollection m1 = Regex.Matches(html, @"<title>\s*(.+?)\s*</title>", RegexOptions.Singleline);
+                MatchCollection m2 = Regex.Matches(html, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
+                MatchCollection m3 = Regex.Matches(html, @"<meta content=""\s*(.+?)\s*"" itemprop=""dateCreated", RegexOptions.Singleline);
+                String root = "";
+
+                if (oldList.ElementAt(count).Contains("bleacherreport"))
                 {
-                    try
-                    {
-                        WebClient web = new WebClient();
-                        String html = web.DownloadString(oldList.ElementAt(i));
-                        MatchCollection m2 = Regex.Matches(html, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
-                        String root = "http://cnn.com";
-                        foreach (Match m in m2)
-                        {
-                            String orig = oldList.ElementAt(i);
-                            String url = m.Groups[1].Value;
-                            if (url.StartsWith("/"))
-                            {
-                                url = root + url;
-                            }
-
-                            if (!oldList.Contains(url) && !noCNN.Contains(url) && (url.Contains(root)))
-                            {
-                                urlList.Add(url);
-                            }
-                        }
-                    }
-                    catch (WebException ex)
-                    {
-
-                    }
-
-       
+                    root = "bleacherreport.com";
                 }
-            return urlList;
+                else
+                {
+                    root = "cnn.com";
+                }
+
+                String title = "";
+                if (m1 != null)
+                {
+                    Match mt = m1[0];
+                    title = mt.Groups[1].Value;
+                }
+
+                String date = "";
+                if (m3 != null && m3.Count > 0)
+                {
+                    Match md = m3[0];
+                    date = md.Groups[1].Value;
+                }
+
+                CloudQueueMessage retrievedMessage = queue.GetMessage();
+                if (retrievedMessage != null)
+                {
+                    crawledTable ct = new crawledTable("344 HW 3", retrievedMessage.AsString, title, date);
+                    TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(ct);
+                    table.Execute(insertOrReplaceOperation);
+                    queue.DeleteMessage(retrievedMessage);
+                    count++;
+                }
+
+                foreach (Match m in m2)
+                {
+                    String url = m.Groups[1].Value;
+                    if (url.StartsWith("/"))
+                    {
+                        url = root + url;
+                    }
+                    if (!oldList.Contains(url) && !disallowed.Contains(url) && (url.Contains(root + "/")))
+                    {
+                        oldList.Add(url);
+                        CloudQueueMessage message = new CloudQueueMessage(url);
+                        queue.AddMessage(message);
+                    }
+                }
+
+
+
+            }
+
+            return oldList;
         }
 
     }
