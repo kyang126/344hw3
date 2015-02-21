@@ -1,5 +1,7 @@
 C:\Users\Kevin\Documents\Visual Studio 2013\Projects\AzureCloudService1\AzureCloudService1\bin\Debug\ServiceConfiguration.cscfg
 C:\Users\Kevin\Documents\Visual Studio 2013\Projects\AzureCloudService1\AzureCloudService1\bin\Debug\ServiceDefinition.csdef
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\ClassLibrary1.dll
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\ClassLibrary1.pdb
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\de\Microsoft.Data.Edm.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\de\Microsoft.Data.OData.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\de\Microsoft.Data.Services.Client.resources.dll
@@ -58,6 +60,8 @@ C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureClo
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\zh-Hant\Microsoft.Data.OData.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\zh-Hant\Microsoft.Data.Services.Client.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\zh-Hant\System.Spatial.resources.dll
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\ClassLibrary1.dll
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\ClassLibrary1.pdb
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\de\Microsoft.Data.Edm.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\de\Microsoft.Data.OData.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\de\Microsoft.Data.Services.Client.resources.dll
@@ -70,6 +74,8 @@ C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureClo
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\fr\Microsoft.Data.OData.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\fr\Microsoft.Data.Services.Client.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\fr\System.Spatial.resources.dll
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\HtmlAgilityPack.dll
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\HtmlAgilityPack.pdb
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\it\Microsoft.Data.Edm.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\it\Microsoft.Data.OData.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\it\Microsoft.Data.Services.Client.resources.dll
@@ -106,7 +112,3 @@ C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureClo
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\zh-Hant\Microsoft.Data.OData.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\zh-Hant\Microsoft.Data.Services.Client.resources.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\zh-Hant\System.Spatial.resources.dll
-C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\ClassLibrary1.dll
-C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WebRole1\bin\ClassLibrary1.pdb
-C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\ClassLibrary1.dll
-C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\AzureCloudService1\obj\Debug\WorkerRole1\ClassLibrary1.pdb

@@ -15,6 +15,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 using System.IO;
 using System.Text.RegularExpressions;
 using ClassLibrary1;
+using System.Text;
 
 namespace WorkerRole1
 {
@@ -29,30 +30,29 @@ namespace WorkerRole1
 
             try
             {
-               while (true){
-                   getReference g = new getReference();
-                   CloudQueue queue = g.commandQueue();
-                   queue.CreateIfNotExists();
-                   CloudQueueMessage retrievedMessage = queue.GetMessage();
+                while (true)
+                {
+                    getReference g = new getReference();
+                    CloudQueue queue = g.commandQueue();
+                    queue.CreateIfNotExists();
+                    CloudQueueMessage retrievedMessage = queue.GetMessage();
 
-                   if (retrievedMessage != null && retrievedMessage.AsString.Equals("start"))
-                   {
-                       queue.DeleteMessage(retrievedMessage);
-                       crawlRobots();
-                   }
+                    if (retrievedMessage != null && retrievedMessage.AsString.Equals("start"))
+                    {
+                        queue.DeleteMessage(retrievedMessage);
+                        crawlRobots();
+                    }
 
-                   else if (retrievedMessage != null && retrievedMessage.AsString.Equals("stop"))
-                   {
-                       queue.DeleteMessage(retrievedMessage);
-                       break;
-                   } 
+                    else if (retrievedMessage != null && retrievedMessage.AsString.Equals("stop"))
+                    {
+                        queue.DeleteMessage(retrievedMessage);
+                        break;
+                    }
 
-               }
-                    
+                }
 
-               Thread.Sleep(50);
-                
 
+                Thread.Sleep(50);
 
                 //this.RunAsync(this.cancellationTokenSource.Token).Wait();
             }
@@ -159,6 +159,7 @@ namespace WorkerRole1
             getReference g = new getReference();
             CloudQueue queue = g.getQueue();
             CloudQueue cmd = g.commandQueue();
+            String root = "";
             for (int i = 0; i < xmlList.Count; i++)
             {
                 String xml = xmlList.ElementAt(i);
@@ -167,6 +168,16 @@ namespace WorkerRole1
                 MatchCollection m1 = Regex.Matches(html, @"<loc>\s*(.+?)\s*</loc>", RegexOptions.Singleline);
 
                 CloudQueueMessage cmdMessage = cmd.GetMessage();
+
+                if (xml.Contains("cnn"))
+                {
+                    root = "cnn.com";
+                }
+                else if (xml.Contains("bleacherreport"))
+                {
+                    root = "bleacherreport";
+                }
+
 
                 if (cmdMessage != null && cmdMessage.AsString.Equals("stop"))
                 {
@@ -181,37 +192,35 @@ namespace WorkerRole1
                     CloudQueueMessage message = new CloudQueueMessage(url);
                     queue.AddMessage(message);
                 }
-                urlList = getAllUrls(urlList, noRobots);
+                urlList = getAllUrls(urlList, noRobots, root);
             }
         }
 
-        private HashSet<String> getAllUrls(HashSet<String> o, List<String> disallowed)
+        private HashSet<String> getAllUrls(HashSet<String> o, List<String> disallowed, String root)
         {
             getReference g = new getReference();
             CloudQueue queue = g.getQueue();
             CloudTable table = g.getTable();
             CloudQueue cmd = g.commandQueue();
             HashSet<String> oldList = o;
-
-            int count = 0;
             queue.FetchAttributes();
             while (0 < queue.ApproximateMessageCount.Value)
             {
-                WebClient web = new WebClient();
-                String html = web.DownloadString(oldList.ElementAt(count));
+                String html = "";
+                CloudQueueMessage retrievedMessage = queue.GetMessage();
+                queue.DeleteMessage(retrievedMessage);
+
+                using (WebClient webClient = new WebClient())
+                {
+                    webClient.Encoding = Encoding.UTF8;
+                    html = webClient.DownloadString(retrievedMessage.AsString);
+                }
+
+
                 MatchCollection titles = Regex.Matches(html, @"<title>\s*(.+?)\s*</title>", RegexOptions.Singleline);
                 MatchCollection links = Regex.Matches(html, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
                 MatchCollection dates = Regex.Matches(html, @"<meta content=""\s*(.+?)\s*"" itemprop=""dateCreated", RegexOptions.Singleline);
-                String root = "";
 
-                if (oldList.ElementAt(count).Contains("bleacherreport"))
-                {
-                    root = "bleacherreport.com";
-                }
-                else
-                {
-                    root = "cnn.com";
-                }
 
                 String title = "";
                 if (titles != null)
@@ -227,22 +236,24 @@ namespace WorkerRole1
                     date = md.Groups[1].Value;
                 }
 
-                CloudQueueMessage retrievedMessage = queue.GetMessage();
                 if (retrievedMessage != null)
                 {
                     crawledTable ct = new crawledTable("344 HW 3", retrievedMessage.AsString, title, date);
                     TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(ct);
                     table.Execute(insertOrReplaceOperation);
-                    queue.DeleteMessage(retrievedMessage);
-                    count++;
+
                 }
 
                 foreach (Match m in links)
                 {
                     String url = m.Groups[1].Value;
-                    if (url.StartsWith("/"))
+                    if (url.StartsWith("//"))
                     {
-                        url = root + url;
+                        url = "http:" + url;
+                    }
+                    else if (url.StartsWith("/"))
+                    {
+                        url = "http://" + root + url;
                     }
                     if (!oldList.Contains(url) && !disallowed.Contains(url) && (url.Contains(root + "/")))
                     {

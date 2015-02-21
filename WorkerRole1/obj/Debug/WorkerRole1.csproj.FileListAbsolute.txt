@@ -58,3 +58,6 @@ C:\Users\Kevin\Documents\Visual Studio 2013\Projects\AzureCloudService1\WorkerRo
 C:\Users\Kevin\Documents\Visual Studio 2013\Projects\AzureCloudService1\WorkerRole1\obj\Debug\WorkerRole1.pdb
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\WorkerRole1\bin\Debug\ClassLibrary1.dll
 C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\WorkerRole1\bin\Debug\ClassLibrary1.pdb
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\WorkerRole1\bin\Debug\HtmlAgilityPack.dll
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\WorkerRole1\bin\Debug\HtmlAgilityPack.pdb
+C:\Users\Kevin\documents\visual studio 2013\Projects\AzureCloudService1\WorkerRole1\bin\Debug\HtmlAgilityPack.xml

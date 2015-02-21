@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Services;
 using ClassLibrary1;
+using System.Text;
 
 namespace WebRole1
 {
@@ -199,6 +200,7 @@ namespace WebRole1
             HashSet<String> urlList = new HashSet<string>();
             getReference g = new getReference();
             CloudQueue queue = g.getQueue();
+            CloudTable table = g.getTable();
             CloudQueue cmd = g.commandQueue();
             for (int i = 0; i < xmlList.Count; i++)
             {
@@ -221,8 +223,60 @@ namespace WebRole1
                     urlList.Add(url);
                     CloudQueueMessage message = new CloudQueueMessage(url);
                     queue.AddMessage(message);
+
                 }
-                urlList = getAllUrls(urlList, noRobots);
+                //urlList = getAllUrls(urlList, noRobots);
+
+                  queue.FetchAttributes();
+                  while (0 < queue.ApproximateMessageCount.Value)
+                  {
+
+
+                      String html1 = "";
+                      CloudQueueMessage retrievedMessage = queue.GetMessage();
+                      queue.DeleteMessage(retrievedMessage);
+
+                      using (WebClient webClient = new WebClient())
+                      {
+                          webClient.Encoding = Encoding.UTF8;
+                          html1 = webClient.DownloadString(retrievedMessage.AsString);
+                      }
+                      MatchCollection links = Regex.Matches(html1, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
+                      crawledTable ct = new crawledTable("testing inside", retrievedMessage.AsString, "title", "date");
+                      TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(ct);
+                      table.Execute(insertOrReplaceOperation);
+
+                      String root = "";
+
+                      if (retrievedMessage.AsString.Contains("bleacher"))
+                      {
+                          root = "bleacherreport.com";
+                      } else if (retrievedMessage.AsString.Contains("cnn")){
+                          root = "cnn.com";
+                      }
+
+
+                      foreach (Match m in links)
+                      {
+                          String url = m.Groups[1].Value;
+                          if (url.StartsWith("//"))
+                          {
+                              url = "http:" + url;
+                          }
+                          else if (url.StartsWith("/"))
+                          {
+                              url = "http://" + root + url;
+                          }
+                          if (!urlList.Contains(url) && !noRobots.Contains(url) && (url.Contains(root + "/")))
+                          {
+                              urlList.Add(url);
+                              CloudQueueMessage message = new CloudQueueMessage(url);
+                              queue.AddMessage(message);
+                          }
+                      }
+
+
+                  }
             }
         }
 
