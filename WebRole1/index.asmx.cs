@@ -1,5 +1,4 @@
-﻿using HtmlAgilityPack;
-using Microsoft.WindowsAzure;
+﻿using Microsoft.WindowsAzure;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
@@ -14,6 +13,7 @@ using System.Web;
 using System.Web.Services;
 using ClassLibrary1;
 using System.Text;
+using HtmlAgilityPack;
 
 namespace WebRole1
 {
@@ -228,51 +228,94 @@ namespace WebRole1
                 //urlList = getAllUrls(urlList, noRobots);
 
                   queue.FetchAttributes();
-                  while (0 < queue.ApproximateMessageCount.Value)
+                var limitCount = queue.ApproximateMessageCount.Value;
+                int count = 0;
+                  while (0 < limitCount)
                   {
 
 
                       String html1 = "";
                       CloudQueueMessage retrievedMessage = queue.GetMessage();
-                      queue.DeleteMessage(retrievedMessage);
 
-                      using (WebClient webClient = new WebClient())
+                      if (retrievedMessage != null)
                       {
-                          webClient.Encoding = Encoding.UTF8;
-                          html1 = webClient.DownloadString(retrievedMessage.AsString);
-                      }
-                      MatchCollection links = Regex.Matches(html1, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
-                      crawledTable ct = new crawledTable("testing inside", retrievedMessage.AsString, "title", "date");
-                      TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(ct);
-                      table.Execute(insertOrReplaceOperation);
 
-                      String root = "";
-
-                      if (retrievedMessage.AsString.Contains("bleacher"))
-                      {
-                          root = "bleacherreport.com";
-                      } else if (retrievedMessage.AsString.Contains("cnn")){
-                          root = "cnn.com";
-                      }
-
-
-                      foreach (Match m in links)
-                      {
-                          String url = m.Groups[1].Value;
-                          if (url.StartsWith("//"))
+                          using (WebClient webClient = new WebClient())
                           {
-                              url = "http:" + url;
+                              webClient.Encoding = Encoding.UTF8;
+                              html1 = webClient.DownloadString(retrievedMessage.AsString);
                           }
-                          else if (url.StartsWith("/"))
+                          MatchCollection titles = Regex.Matches(html1, @"<title>\s*(.+?)\s*</title>", RegexOptions.Singleline);
+                          MatchCollection links = Regex.Matches(html1, @"<a href=""\s*(.+?)\s*""", RegexOptions.Singleline);
+                          MatchCollection dates = Regex.Matches(html1, @"<meta content=""\s*(.+?)\s*"" itemprop=""dateCreated", RegexOptions.Singleline);
+
+
+
+                          String root = "";
+
+                          if (retrievedMessage.AsString.Contains("bleacher"))
                           {
-                              url = "http://" + root + url;
+                              root = "bleacherreport.com";
                           }
-                          if (!urlList.Contains(url) && !noRobots.Contains(url) && (url.Contains(root + "/")))
+                          else if (retrievedMessage.AsString.Contains("cnn"))
                           {
-                              urlList.Add(url);
-                              CloudQueueMessage message = new CloudQueueMessage(url);
-                              queue.AddMessage(message);
+                              root = "cnn.com";
                           }
+                          int test = links.Count;
+                          foreach (Match m in links)
+                          {
+                              count++;
+                              String url = m.Groups[1].Value;
+                              if (url.StartsWith("//"))
+                              {
+                                  url = "http:" + url;
+                              }
+                              else if (url.StartsWith("/"))
+                              {
+                                  url = "http://" + root + url;
+                              }
+                              if (!urlList.Contains(url) && !noRobots.Contains(url) && (url.Contains(root + "/")))
+                              {
+                                  urlList.Add(url);
+                                  CloudQueueMessage message = new CloudQueueMessage(url);
+                                  queue.AddMessage(message);
+                              }
+                          }
+                       
+
+
+
+                          String title = "";
+                          if (titles != null && titles.Count > 0)
+                          {
+                              Match mt = titles[0];
+                              title = mt.Groups[1].Value;
+                          }
+
+                          String date = "";
+                          if (dates != null && dates.Count > 0)
+                          {
+                              Match md = dates[0];
+                              date = md.Groups[1].Value;
+                          }
+
+
+                          queue.DeleteMessage(retrievedMessage);
+                          crawledTable ct = new crawledTable("new inside test", retrievedMessage.AsString, title, date);
+                          TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(ct);
+                          table.Execute(insertOrReplaceOperation);
+
+                          queue.FetchAttributes();
+                          limitCount = queue.ApproximateMessageCount.Value;
+
+
+
+
+
+
+                       
+
+
                       }
 
 
